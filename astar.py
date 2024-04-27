@@ -1,13 +1,19 @@
 from __future__ import annotations
 import sys, math
 import numpy as np                  # To compute sum[i] = num[i] + sum[i+1]
-from heapq import *                 # Heap for the priority queue
 from fenwick import FenwickTree     # To add and remove matches
 from utils import *                 # Trivial helper functions
 from typing import Callable, Tuple, Dict, List
+from heapq import heappush, heappop  # Heap for the priority queue
 from collections import defaultdict
 
-h_dijkstra = lambda ij: 0   # Dijkstra's dummy heuristic
+import numpy as np  # To compute sum[i] = num[i] + sum[i+1]
+from fenwick import FenwickTree  # To add and remove matches
+
+from utils import ceildiv, read_fasta_file, print_stats
+
+h_dijkstra = lambda ij: 1  # Dijkstra's dummy heuristic
+
 
 def build_seedh(A: str, B: str, k: int) -> Callable[[int], int]:
     """Builds the admissible seed heuristic for A and B with k-mers.
@@ -60,7 +66,7 @@ def next_states_with_cost(u, A, B):
              ((u[0],     u[1] + 1), 1),
              ((u[0] + 1, u[1] + 1), A[u[0]] != B[u[1]]) ]
 
-def align(A: str, B: str, h: Callable[[Tuple[int, int], int]]) -> Dict[Tuple[int, int], int]:
+def align(A: str, B: str, h: Callable[[Tuple[int, int], int]]) -> Tuple[Dict[Tuple[int, int], int], Tuple[int, int], int]:
     """
     Standard A* on the grid A x B using a given heuristic h.
 
@@ -88,27 +94,39 @@ def align(A: str, B: str, h: Callable[[Tuple[int, int], int]]) -> Dict[Tuple[int
     
     A += '!'; B += '!'          # Barrier to avoid index out of bounds
 
+    comparisons: int = 0 # Count amount of "work" done
+
     while Q:
-        _, u = heappop(Q)                                   # Pop state u with lowest priority
-        if u == target: return g                            # Return cost to target
-        if u[0] > target[0] or u[1] > target[1]: continue   # Skip states after target
-        
-        if hasattr(h, "misses"):                # If the heuristic supports pruning
-            if not u[0] % h.k:                  # If expanding at the beginning of a seed
+        _, u = heappop(Q)  # Pop state u with lowest priority
+        if u == target:
+            return (
+                g,  # costs dictionary
+                g[(len(A) - 1, len(B) - 1)],  # distance from A to B
+                comparisons,  # number of matrix cells evaluated
+            )
+
+        if u[0] > target[0] or u[1] > target[1]:
+            continue  # Skip states after target
+
+        if hasattr(h, "misses"):  # If the heuristic supports pruning
+            if not u[0] % h.k:  # If expanding at the beginning of a seed
                 s = u[0] // h.k
-                if u[1] in h.M[s]:              # If the expanded state is a beginning of a match
-                    h.M.remove(s, u[1])         # Remove match from M
-                    assert(len(h.M[s]) >= 0)
-                    if not h.M[s]:              # If no more matches for this seed, then increase the misses
-                        assert(not h.misses[s])
+                if u[1] in h.M[s]:  # If the expanded state is a beginning of a match
+                    h.M.remove(s, u[1])  # Remove match from M
+                    assert len(h.M[s]) >= 0
+                    # If no more matches for this seed, then increase the misses
+                    if not h.M[s]:
+                        assert not h.misses[s]
                         h.misses.add(s, +1)
 
-        for v, edit_cost in next_states_with_cost(u, A, B): # For all edges u->v
-            new_cost_to_next = g[u] + edit_cost             # Try optimal path through u->v
-            if v not in g or new_cost_to_next < g[v]:       # If new path is better 
-                g[v] = new_cost_to_next                     # Update cost to v
-                priority = new_cost_to_next + h(v)          # Compute priority
-                heappush(Q, (priority, v))                  # Push v with new priority
+        for v, edit_cost in next_states_with_cost(u, A, B):  # For all edges u->v
+            new_cost_to_next = g[u] + edit_cost  # Try optimal path through u->v
+            if v not in g or new_cost_to_next < g[v]:  # If new path is better
+                g[v] = new_cost_to_next  # Update cost to v
+                priority = new_cost_to_next + h(v)  # Compute priority
+                heappush(Q, (priority, v))  # Push v with new priority
+            comparisons += 1
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -121,5 +139,5 @@ if __name__ == "__main__":
         A, B   = map(read_fasta_file, sys.argv[1:3])
         k      = math.ceil(math.log(len(A), 4))
         h_seed = build_seedh(A, B, k)
-        g      = align(A, B, h_seed)
+        g, _, __      = align(A, B, h_seed)
         print_stats(A, B, k, g)

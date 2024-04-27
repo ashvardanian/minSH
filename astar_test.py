@@ -2,10 +2,23 @@ from __future__ import annotations
 import os
 import unittest
 import random
-import editdistance
+import math
 
-from astar import *
-from utils import *
+import editdistance  # third-party baseline
+
+from astar import (
+    h_dijkstra,
+    align,
+    build_seedh,
+    build_seedh_for_pruning,
+    print_stats,
+)
+from utils import (
+    read_fasta_file,
+    generate_random_sequence,
+    apply_errors,
+    save_fasta_file,
+)
 
 
 class TestFastaFunctions(unittest.TestCase):
@@ -43,13 +56,13 @@ class TestAStar(unittest.TestCase):
         self.target = (len(self.A), len(self.B))
 
     def test_dijkstra(self):
-        g = align(self.A, self.B, h_dijkstra)
+        g, _, __ = align(self.A, self.B, h_dijkstra)
         self.assertEqual(g[self.target], editdistance.eval(self.A, self.B))
 
     def test_astar_with_seed_heuristic_small(self):
         k = 3
         h_seed = build_seedh(self.A, self.B, k)
-        g = align(self.A, self.B, h_seed)
+        g, _, __ = align(self.A, self.B, h_seed)
         self.assertEqual(g[self.target], editdistance.eval(self.A, self.B))
 
     def test_astar_with_seedh_big(self):
@@ -60,7 +73,7 @@ class TestAStar(unittest.TestCase):
         target = (len(A), len(B))
         k = math.ceil(math.log(len(A), 4))
         h_seed = build_seedh(A, B, k)
-        g = align(A, B, h_seed)
+        g, _, __ = align(A, B, h_seed)
         # print_stats(A, B, k, g)
         # self.assertEqual(g[target], editdistance.eval(A, B))
 
@@ -73,7 +86,7 @@ class TestAStar(unittest.TestCase):
         target = (len(A), len(B))
         k = math.ceil(math.log(len(A), 4))
         h_seed_prune = build_seedh_for_pruning(A, B, k)
-        g_prune = align(A, B, h_seed_prune)
+        g_prune, _, __ = align(A, B, h_seed_prune)
         print_stats(A, B, k, g_prune)
 
 
