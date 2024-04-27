@@ -38,14 +38,14 @@ The A* algirthm is a generalization of Dijkstra's algorithm that explores the no
 
 Prerequisites:
 ```
-pip install rolling
-pip install numpy
-pip install heapq
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -r requirements
 ```
 
 `astar.py` takes `k` and a file with two strings (`A` and `B`), and returns the exact edit distance `ed(A,B)` between them:
 ```
-python astar.py A.fa B.fa
+python3 astar.py data/small_A.fa data/small_B.fa
 ```
 
 ## TODO
@@ -74,3 +74,10 @@ _minSH_ is inspired by [minGPT](https://github.com/karpathy/minGPT) to be small,
 [A*PA](https://github.com/RagnarGrootKoerkamp/astar-pairwise-aligner) global seq-to-seq aligner:
 * [Groot Koerkamp and Ivanov (preprint 2023)](https://www.biorxiv.org/content/10.1101/2022.09.19.508631) &mdash; Applies SH to global alignment (edit distance). Generalizes SH with chaining, inexact matches, gap costs (for higher error rates). Optimizes SH with pruning (for near-linear scaling with length), and A* with diagonal transition (for faster quadratic mode).
 Licensed under the Mozilla Public License, Version 2.0. In short, you are free to use and abuse, but give it back to the community.
+
+# Heuristic and Optimization Ideas
+## Heuristic
+TODO
+
+## Optimization
+TODO

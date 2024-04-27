@@ -1,3 +1,4 @@
 .vscode
 __pycache__
 profile_output.txt
+.venv/
