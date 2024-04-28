@@ -15,7 +15,7 @@ import pandas as pd
 from tqdm import tqdm
 import numpy as np
 
-from astar import h_dijkstra, align, build_seedh, build_seedh_for_pruning
+from astar import h_dijkstra, align, build_seedh, build_seedh_for_pruning, build_straighest_zeroline_heuristic
 
 
 class AlgorithmType(Enum):
@@ -23,6 +23,7 @@ class AlgorithmType(Enum):
     DIJKSTRA = "Dijkstra"
     SEED = "Seed"
     SEED_PRUNING = "Seed Pruning"
+    ZERO_STRAIGHTLINE = "Zero Straightline"
 
 
 @dataclass
@@ -77,9 +78,12 @@ def wrapped_seed(A: str, B: str) -> Any:
     return build_seedh(A, B, k)
 
 
-def wrapped_seed_prune(A, B):
+def wrapped_seed_prune(A: str, B: str):
     k = math.ceil(math.log(len(A), 4))
     return build_seedh_for_pruning(A, B, k)
+
+def wrapped_zero_straightline(A: str, B: str):
+    return build_straighest_zeroline_heuristic(A, B)
 
 
 def main(
@@ -167,6 +171,7 @@ def main(
             (wrapped_dijkstra, AlgorithmType.DIJKSTRA),
             (wrapped_seed, AlgorithmType.SEED),
             (wrapped_seed_prune, AlgorithmType.SEED_PRUNING),
+            (wrapped_zero_straightline, AlgorithmType.ZERO_STRAIGHTLINE),
         ]:
             print(f"-- Running algorithm: {algo}")
 

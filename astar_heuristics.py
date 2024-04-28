@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import List, Tuple, Callable
 
+# NOTE to readers this is NOT CURRENTLY BEING USED (but will be later)
+
 # TODO(Adriano) finish this!
 # This is a class of heuristic functions that are meant to be used in the A* algorithm to try and optimize
 #
