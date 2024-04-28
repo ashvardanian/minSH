@@ -1,8 +1,8 @@
 from __future__ import annotations
 import sys, math
-import numpy as np                  # To compute sum[i] = num[i] + sum[i+1]
-from fenwick import FenwickTree     # To add and remove matches
-from utils import *                 # Trivial helper functions
+import numpy as np  # To compute sum[i] = num[i] + sum[i+1]
+from fenwick import FenwickTree  # To add and remove matches
+from utils import *  # Trivial helper functions
 from typing import Callable, Tuple, Dict, List
 from heapq import heappush, heappop  # Heap for the priority queue
 from collections import defaultdict
@@ -15,10 +15,39 @@ from utils import ceildiv, read_fasta_file, print_stats
 h_dijkstra = lambda ij: 1  # Dijkstra's dummy heuristic
 
 
+def build_straighest_zeroline_heuristic(
+    A: str, B: str
+) -> Callable[[Tuple[int, int]], int]:
+    """
+    Build the heuristic for the A* algorithm that gives a lower bound where if you are at (i, j) it assumes that you
+    take a straight line down with slope -1 and then go straight right or down to the end. Which one you do depends on the
+    values of i and j. If you are further to the right you will go down and if you are further down you will go right.
+
+    How far you go is the distance of the smaller of those two.
+    """
+    return lambda ij: __straighest_zeroline_heuristic(ij[0], ij[1], len(A), len(B))
+
+
+def __straighest_zeroline_heuristic(x: int, y: int, x_max: int, y_max: int) -> int:
+    # TODO(Adriano) why the hell does it go over even by one when you control it to not? (look at the z foreach code)
+    assert (
+        x_max + 1 >= x and y_max + 1 >= y
+    ), f"({x}, {y}) is not in the grid ({x_max}, {y_max})"
+    if x == x_max + 1 or y == y_max + 1:
+        return x_max + y_max + 1 + 1 # Super bad never go here
+
+    dx = x_max - x
+    dy = y_max - y
+    # If we are equidistant (on the diagonal) then we will go diagnal => 0
+    # If we are closer to the bottom then we will go right => dx > dy & then you use up dy first and then dx - dy going right
+    # If we are closer to the right then we will go down => dy > dx & then you use up dx first and then dy - dx going down
+    return abs(dx - dy)
+
+
 def build_seedh(A: str, B: str, k: int) -> Callable[[int], int]:
     """Builds the admissible seed heuristic for A and B with k-mers.
-    
-    The way this works is pretty simple: 
+
+    The way this works is pretty simple:
     1. You imagine that we will match A TO B (note that this is symmetric since otherwise there would be a
         shorter from B to A: shortest in either direction is the same and there is a 1:1 mapping between change
         sequences in either direction by reversal).
@@ -31,42 +60,60 @@ def build_seedh(A: str, B: str, k: int) -> Callable[[int], int]:
         was not in B at all).
 
     """
-    assert k <= len(A) and k <= len(B) # Don't allow this
+    assert k <= len(A) and k <= len(B)  # Don't allow this
 
-    seeds = [ A[i:i+k] for i in range(0, len(A)-k+1, k) ]           # O(n)   
-    kmers = { B[j:j+k] for j in range(len(B)-k+1) }                 # O(nk), O(n) with rolling hash (Rabin-Karp)
-    is_seed_missing = [ s not in kmers for s in seeds ] + [False]*2 # O(n)
-    suffix_sum = np.cumsum(is_seed_missing[::-1])[::-1]             # O(n)
-    return lambda ij, k=k: suffix_sum[ ceildiv(ij[0], k) ]          # O(1)
+    seeds = [A[i : i + k] for i in range(0, len(A) - k + 1, k)]  # O(n)
+    kmers = {
+        B[j : j + k] for j in range(len(B) - k + 1)
+    }  # O(nk), O(n) with rolling hash (Rabin-Karp)
+    is_seed_missing = [s not in kmers for s in seeds] + [False] * 2  # O(n)
+    suffix_sum = np.cumsum(is_seed_missing[::-1])[::-1]  # O(n)
+    return lambda ij, k=k: suffix_sum[ceildiv(ij[0], k)]  # O(1)
+
 
 def build_seedh_for_pruning(A: str, B: str, k: int) -> Callable[[int], int]:
     """
     Build something analogous to build_seedh but I think the fenwick tree lets you change cumulative sums.
     """
-    S = [ A[i:i+k] for i in range(0, len(A)-k+1, k) ] # Seeds
-    K = defaultdict(set); [ K[B[j:j+k]].add(j) for j in range(len(B) - k + 1) ] # Kmers dict
-    M = [ K[s] for s in range(len(S)) ] # Mapping (by index) from seed to set of kmers that match (their indices)
+    S = [A[i : i + k] for i in range(0, len(A) - k + 1, k)]  # Seeds
+    K = defaultdict(set)
+    [K[B[j : j + k]].add(j) for j in range(len(B) - k + 1)]  # Kmers dict
+    M = [
+        K[s] for s in range(len(S))
+    ]  # Mapping (by index) from seed to set of kmers that match (their indices)
 
     # Fenwick tree lets you quickly find the sum of ranges of an array AND edit them
     # (think: better than just splitting array in middle recursively)
-    misses = FenwickTree(len(S)+2); misses.init([not js for js in M] + [0]*2)
-    
+    misses = FenwickTree(len(S) + 2)
+    misses.init([not js for js in M] + [0] * 2)
+
     # Calculate the cumulative sum TO the END using the Fenwick tree
-    return lambda ij, k=k, M=M, misses=misses: \
-        misses.range_sum( ceildiv(ij[0], k), len(misses) )
+    return lambda ij, k=k, M=M, misses=misses: misses.range_sum(
+        ceildiv(ij[0], k), len(misses)
+    )
+
 
 def next_states_with_cost(u, A, B):
     """Generates three states following curr (right, down, diagonal) with cost 0
     for match, 1 otherwise.
-    
-    This is just a helper to specifically know which node in the graph to go to 
+
+    This is just a helper to specifically know which node in the graph to go to
     and which cost to associate with it.
     """
-    return [ ((u[0] + 1, u[1]    ), 1),
-             ((u[0],     u[1] + 1), 1),
-             ((u[0] + 1, u[1] + 1), A[u[0]] != B[u[1]]) ]
+    return [
+        z
+        for z in [
+            ((u[0] + 1, u[1]), 1),
+            ((u[0], u[1] + 1), 1),
+            ((u[0] + 1, u[1] + 1), A[u[0]] != B[u[1]]),
+        ]
+        if z[0][0] <= len(A) and z[0][1] <= len(B)
+    ]
 
-def align(A: str, B: str, h: Callable[[Tuple[int, int], int]]) -> Tuple[Dict[Tuple[int, int], int], Tuple[int, int], int]:
+
+def align(
+    A: str, B: str, h: Callable[[Tuple[int, int], int]]
+) -> Tuple[Dict[Tuple[int, int], int], Tuple[int, int], int]:
     """
     Standard A* on the grid A x B using a given heuristic h.
 
@@ -85,16 +132,17 @@ def align(A: str, B: str, h: Callable[[Tuple[int, int], int]]) -> Tuple[Dict[Tup
 
     There is an additional feature here which is pruning: TODO(Adriano) understand the pruning well.
     """
-    start: Tuple[int, int] = (0, 0)              # Start state
-    target: Tuple[int, int] = (len(A), len(B))   # Target state
-    
-    Q: List[Tuple[int, Tuple[int, int]]] = []                      # Priority queue with candidate states
-    heappush(Q, (0, start))     # Push start state with priority 0
-    g: Dict[Tuple[int, int], int] = { start: 0 }            # Cost of getting to each state
-    
-    A += '!'; B += '!'          # Barrier to avoid index out of bounds
+    start: Tuple[int, int] = (0, 0)  # Start state
+    target: Tuple[int, int] = (len(A), len(B))  # Target state
 
-    comparisons: int = 0 # Count amount of "work" done
+    Q: List[Tuple[int, Tuple[int, int]]] = []  # Priority queue with candidate states
+    heappush(Q, (0, start))  # Push start state with priority 0
+    g: Dict[Tuple[int, int], int] = {start: 0}  # Cost of getting to each state
+
+    A += "!"
+    B += "!"  # Barrier to avoid index out of bounds
+
+    comparisons: int = 0  # Count amount of "work" done
 
     while Q:
         _, u = heappop(Q)  # Pop state u with lowest priority
@@ -106,6 +154,8 @@ def align(A: str, B: str, h: Callable[[Tuple[int, int], int]]) -> Tuple[Dict[Tup
             )
 
         if u[0] > target[0] or u[1] > target[1]:
+            if u[0] > target[0] + 1 or u[1] > target[1] + 1:
+                raise RuntimeError # Should never reach here
             continue  # Skip states after target
 
         if hasattr(h, "misses"):  # If the heuristic supports pruning
@@ -136,8 +186,12 @@ if __name__ == "__main__":
         # 2. Pick a reasonable k
         # 3. Align it
         # 4. Print information about how many nodes were visited in the graph and the edit distance
-        A, B   = map(read_fasta_file, sys.argv[1:3])
-        k      = math.ceil(math.log(len(A), 4))
-        h_seed = build_seedh(A, B, k)
-        g, _, __      = align(A, B, h_seed)
+        A, B = map(read_fasta_file, sys.argv[1:3])
+        # Uncomment to use the seed heuristic from the original:
+        # (note we don't really use k)
+        k = math.ceil(math.log(len(A), 4))
+        # h_seed = build_seedh(A, B, k)
+        # h_seed = build_seedh_for_pruning(A, B, k)
+        h_seed = build_straighest_zeroline_heuristic(A, B)
+        g, _, __ = align(A, B, h_seed)
         print_stats(A, B, k, g)

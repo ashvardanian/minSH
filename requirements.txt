@@ -5,3 +5,7 @@ fenwick
 rolling
 pytest
 stringzilla
+fire
+pandas
+tqdm
+click
