@@ -4,3 +4,4 @@ matplotlib
 fenwick
 rolling
 pytest
+stringzilla

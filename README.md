@@ -90,8 +90,4 @@ _minSH_ is inspired by [minGPT](https://github.com/karpathy/minGPT) to be small,
 Licensed under the Mozilla Public License, Version 2.0. In short, you are free to use and abuse, but give it back to the community.
 
 # Heuristic and Optimization Ideas
-## Heuristic
-TODO
-
-## Optimization
-TODO
+Look at `astar_heuristics.py` as well. Optimizations are incoming but may include cache-oblivious tiling and stencil, parallelization, linear algebraic optimizations, random algorithms, changes to the graph, etc... Really anything goes.

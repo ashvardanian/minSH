@@ -4,6 +4,8 @@ from typing import Dict, List
 from time import perf_counter
 from collections import defaultdict
 import math
+import json
+from typing import Callable, Tuple, Any
 
 import numpy as np
 from stringzilla import File, Str
@@ -35,7 +37,7 @@ class BenchmarkResult:
     length_b: int
 
 
-def wagner_fisher(s1, s2) -> Result:
+def wagner_fisher(s1: str, s2: str) -> Result:
     # Create a matrix of size (len(s1)+1) x (len(s2)+1)
     matrix = np.zeros((len(s1) + 1, len(s2) + 1), dtype=int)
 
@@ -61,11 +63,11 @@ def wagner_fisher(s1, s2) -> Result:
     return Result(matrix, matrix[len(s1), len(s2)], comparisons)
 
 
-def wrapped_dijkstra(A, B):
+def wrapped_dijkstra(A: str, B: str) -> Callable[[Tuple[int, int]], int]:
     return h_dijkstra
 
 
-def wrapped_seed(A, B):
+def wrapped_seed(A: str, B: str) -> Any:
     k = math.ceil(math.log(len(A), 4))
     return build_seedh(A, B, k)
 
@@ -81,9 +83,10 @@ if __name__ == "__main__":
     batch_size = 100
 
     datasets = [
-        "data/enwik9.txt",
+        # Apparently enwik9 has some non-utf-8 chars which break this (as well as xlsum.csv)
+        # "data/enwik9.txt",
         "data/leipzig1M.txt",
-        "data/xlsum.csv",
+        # "data/xlsum.csv",
     ]
 
     for dataset in datasets:

@@ -2,3 +2,4 @@
 __pycache__
 profile_output.txt
 .venv/
+*.json
