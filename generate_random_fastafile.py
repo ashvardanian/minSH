@@ -5,7 +5,7 @@ from typing import List
 from pathlib import Path
 import uuid
 
-from utils import save_fasta_file
+from minsh.utils import save_fasta_file
 
 @click.command()
 @click.option(

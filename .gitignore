@@ -3,3 +3,6 @@ __pycache__
 profile_output.txt
 .venv/
 *.json
+*.txt
+*.csv
+*.egg-info

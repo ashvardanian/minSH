@@ -2,7 +2,6 @@ from __future__ import annotations
 import sys, math
 import numpy as np  # To compute sum[i] = num[i] + sum[i+1]
 from fenwick import FenwickTree  # To add and remove matches
-from utils import *  # Trivial helper functions
 from typing import Callable, Tuple, Dict, List
 from heapq import heappush, heappop  # Heap for the priority queue
 from collections import defaultdict
@@ -10,7 +9,7 @@ from collections import defaultdict
 import numpy as np  # To compute sum[i] = num[i] + sum[i+1]
 from fenwick import FenwickTree  # To add and remove matches
 
-from utils import ceildiv, read_fasta_file, print_stats
+from minsh.utils import ceildiv, read_fasta_file, print_stats
 
 h_dijkstra = lambda ij: 1  # Dijkstra's dummy heuristic
 
@@ -132,10 +131,11 @@ def align(
 
     There is an additional feature here which is pruning: TODO(Adriano) understand the pruning well.
 
-    :param A: string A
-    :param B: string B
-    :param h: heuristic function `h(ij) -> int`, where `ij` is a tuple of two integers
-    :return: Result object with the cost to target, distance to target, and number of cells.
+    :param A:   string A.
+    :param B:   string B.
+    :param h:   heuristic function `h(ij) -> int`, where `ij` is a tuple of two integers.
+    :return:    tuple with the dictionary of state distances, distance to target, and
+                number of cells evaluated during traversal.
     """
     start: Tuple[int, int] = (0, 0)  # Start state
     target: Tuple[int, int] = (len(A), len(B))  # Target state
@@ -143,10 +143,11 @@ def align(
     Q: List[Tuple[int, Tuple[int, int]]] = []  # Priority queue with candidate states
     heappush(Q, (0, start))  # Push start state with priority 0
     g: Dict[Tuple[int, int], int] = {start: 0}  # Cost of getting to each state
+    cells: int = 0
 
-    A += "!"
-    B += "!"  # Barrier to avoid index out of bounds
-    cells = 0
+    # Barrier to avoid index out of bounds
+    A += b"!" if isinstance(A, bytes) else "!"
+    B += b"!" if isinstance(B, bytes) else "!"
 
     while Q:
         _, u = heappop(Q)  # Pop state u with lowest priority

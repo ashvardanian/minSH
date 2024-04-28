@@ -50,12 +50,13 @@ pip3 install -r requirements
 Run tests first:`
 
 ```bash
-python astar_test.py
+python test.py
 ```
 
 `astar.py` takes `k` and a file with two strings (`A` and `B`), and returns the exact edit distance `ed(A,B)` between them:
-```
-python3 astar.py data/small_A.fa data/small_B.fa
+
+```bash
+python minsh/astar.py data/small_A.fa data/small_B.fa
 ```
 
 ## TODO
