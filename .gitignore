@@ -4,3 +4,5 @@ profile_output.txt
 *.txt
 *.csv
 *.egg-info
+.venv
+build

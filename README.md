@@ -77,16 +77,16 @@ To explore additional tooling - clone the repository and install the dependencie
 
 ```bash
 git clone https://github.com/pesho-ivanov/minSH && cd minSH
-pip install -r requirements.txt
-python scripts/test.py      # tests
-python scripts/generate.py  # synthetic FASTA files
+pip3 install .
+python3 scripts/test.py      # tests
+python3 scripts/generate.py  # synthetic FASTA files
 ```
 
 ## TODO
 
 Optimizations:
 
-* rolling hash: for linear time precomputation
+* test/improve rolling hash: for linear time precomputation
 * greedy matching (aka sliding)
 * pruning, using index trees
 
