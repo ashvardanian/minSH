@@ -1,0 +1,4 @@
+*.txt
+*.fa
+!small_A.fa
+!small_B.fa

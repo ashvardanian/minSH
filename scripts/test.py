@@ -11,6 +11,8 @@ from minsh.astar import (
     build_seedh,
     build_seedh_for_pruning,
     print_stats,
+    build_straighest_zeroline_heuristic,
+    build_straighest_zeroline_max_substring_heuristic
 )
 from minsh.utils import (
     read_fasta_file,
@@ -47,6 +49,7 @@ class TestFastaFunctions(unittest.TestCase):
             self.assertEqual(self.random_sequence, sequence)
 
 
+# TODO(Alex): add tests for the hackathon heuristics: zero_straightline and its derivatives.
 class TestAStar(unittest.TestCase):
     def setUp(self):
         random.seed(42)
@@ -89,7 +92,17 @@ class TestAStar(unittest.TestCase):
         print_stats(A, B, k, g_prune)
 
 
-#        self.assertEqual(g_prune[target], editdistance.eval(A, B))
+    def test_astar_with_zero_straightline_small(self):
+        heuristic = build_straighest_zeroline_heuristic(self.A, self.B)
+        target = (len(self.A), len(self.B))
+        g_prune = align(self.A, self.B, heuristic)
+        self.assertEqual(g_prune[target], editdistance.eval(self.A, self.B))
+
+    def test_astar_with_zero_straightline_max_substring(self):
+        heuristic = build_straighest_zeroline_max_substring_heuristic(self.A, self.B, r = 1, )
+        target = (len(self.A), len(self.B))
+        g_prune = align(self.A, self.B, heuristic)
+        self.assertEqual(g_prune[target], editdistance.eval(self.A, self.B))
 
 if __name__ == "__main__":
     unittest.main()
